@@ -52,7 +52,7 @@ class NetPlotter:
         if nonzero_fluxes.max() != nonzero_fluxes.min():
             scaled_fluxes = EDGE_WIDTH_MIN + (EDGE_WIDTH_MAX - EDGE_WIDTH_MIN) * (nonzero_fluxes - nonzero_fluxes.min()) / (nonzero_fluxes.max() - nonzero_fluxes.min())
         else:
-            scaled_fluxes = (nonzero_fluxes - nonzero_fluxes) + nonzero_fluxes.max()
+            scaled_fluxes = (nonzero_fluxes - nonzero_fluxes) + EDGE_WIDTH_MAX
         for reaction_id, width in scaled_fluxes.items():
             # print(f"Adding flux {flux:g} to reaction {reaction_id}")
             nx.draw_networkx_edges(
