@@ -12,6 +12,7 @@ PLOT_OPTIONS = {
 ZERO = 1e-9
 EDGE_WIDTH_MAX = 15
 EDGE_WIDTH_MIN = 5
+EDGE_STYLE = "arc3,rad=0.2"
 
 
 class NetPlotter:
@@ -44,14 +45,14 @@ class NetPlotter:
         nx.draw_networkx_nodes(self.g, position, nodelist=list(metabolite_nodes), node_color="tab:orange", **PLOT_OPTIONS)
         nx.draw_networkx_labels(self.g, position, font_size=10, font_color="white")
         # Plot solid edges
-        nx.draw_networkx_edges(self.g, position, width=1.0, alpha=1.)
+        nx.draw_networkx_edges(self.g, position, width=1.0, alpha=1., connectionstyle=EDGE_STYLE)
         # Plot flux over edges
         solution = self.model.optimize()
         nonzero_fluxes = solution.fluxes[solution.fluxes.abs() > ZERO]
         if nonzero_fluxes.max() != nonzero_fluxes.min():
             scaled_fluxes = EDGE_WIDTH_MIN + (EDGE_WIDTH_MAX - EDGE_WIDTH_MIN) * (nonzero_fluxes - nonzero_fluxes.min()) / (nonzero_fluxes.max() - nonzero_fluxes.min())
         else:
-            scaled_fluxes = (nonzero_fluxes - nonzero_fluxes) + (EDGE_WIDTH_MAX - EDGE_WIDTH_MIN) / 2
+            scaled_fluxes = (nonzero_fluxes - nonzero_fluxes) + nonzero_fluxes.max()
         for reaction_id, width in scaled_fluxes.items():
             # print(f"Adding flux {flux:g} to reaction {reaction_id}")
             nx.draw_networkx_edges(
@@ -60,7 +61,9 @@ class NetPlotter:
                 edgelist=set(self.g.out_edges(reaction_id)) | set(self.g.in_edges(reaction_id)),
                 width=width,
                 alpha=0.5,
-                edge_color="tab:blue"
+                edge_color="tab:blue",
+                connectionstyle=EDGE_STYLE,
+                arrowstyle="-"
             )
         # Output plot
         plt.tight_layout()
