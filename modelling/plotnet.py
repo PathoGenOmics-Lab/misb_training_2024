@@ -1,3 +1,4 @@
+from typing import Callable, Tuple, Mapping
 from cobra import Model
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -32,20 +33,37 @@ class NetPlotter:
                 self.g.add_node(product.id, bipartite=self.METABOLITE)
                 self.g.add_edge(reaction.id, product.id)
     
-    def plot(self, layout_func=None):
+    def _select_all_nodes(self) -> Tuple[set, set]:
+        reaction_nodes = {n for n, d in self.g.nodes(data=True) if d["bipartite"] == self.REACTION}
+        metabolite_nodes = set(self.g) - reaction_nodes
+        return metabolite_nodes, reaction_nodes
+    
+    def _select_nodes_with_reactions(self, reaction_ids: set) -> Tuple[set, set]:
+        reaction_nodes = {n for n, d in self.g.nodes(data=True) if (d["bipartite"] == self.REACTION) and (n in reaction_ids)}
+        metabolite_nodes = set()
+        for reaction in (reaction for reaction in self.model.reactions if reaction.id in reaction_nodes):
+            for metabolite in reaction.metabolites:
+                metabolite_nodes.add(metabolite.id)
+        return metabolite_nodes, reaction_nodes
+
+    def plot(self, reaction_ids: set = {}, layout_func: Callable[[nx.Graph], Mapping] = None) -> None:
         if layout_func is not None:
             position = layout_func(self.g)
         else:
             position = nx.kamada_kawai_layout(self.g)
         # Get types of nodes
-        metabolite_nodes = {n for n, d in self.g.nodes(data=True) if d["bipartite"] == self.METABOLITE}
-        reaction_nodes = set(self.g) - metabolite_nodes
+        if len(reaction_ids) == 0:
+            metabolite_nodes, reaction_nodes = self._select_all_nodes()
+            g = self.g
+        else:
+            metabolite_nodes, reaction_nodes = self._select_nodes_with_reactions(reaction_ids)
+            g = self.g.subgraph(list(reaction_nodes | metabolite_nodes))
         # Plot nodes
-        nx.draw_networkx_nodes(self.g, position, nodelist=list(reaction_nodes), node_color="tab:blue", **PLOT_OPTIONS)
-        nx.draw_networkx_nodes(self.g, position, nodelist=list(metabolite_nodes), node_color="tab:orange", **PLOT_OPTIONS)
-        nx.draw_networkx_labels(self.g, position, font_size=10, font_color="white")
+        nx.draw_networkx_nodes(g, position, nodelist=list(reaction_nodes), node_color="tab:blue", **PLOT_OPTIONS)
+        nx.draw_networkx_nodes(g, position, nodelist=list(metabolite_nodes), node_color="tab:orange", **PLOT_OPTIONS)
+        nx.draw_networkx_labels(g, position, font_size=10, font_color="black")
         # Plot solid edges
-        nx.draw_networkx_edges(self.g, position, width=1.0, alpha=1., connectionstyle=EDGE_STYLE)
+        nx.draw_networkx_edges(g, position, width=1.0, alpha=1., connectionstyle=EDGE_STYLE)
         # Plot flux over edges
         solution = self.model.optimize()
         nonzero_fluxes = solution.fluxes[solution.fluxes.abs() > ZERO]
@@ -54,11 +72,10 @@ class NetPlotter:
         else:
             scaled_fluxes = (nonzero_fluxes - nonzero_fluxes) + EDGE_WIDTH_MAX
         for reaction_id, width in scaled_fluxes.items():
-            # print(f"Adding flux {flux:g} to reaction {reaction_id}")
             nx.draw_networkx_edges(
-                self.g,
+                g,
                 position,
-                edgelist=set(self.g.out_edges(reaction_id)) | set(self.g.in_edges(reaction_id)),
+                edgelist=set(g.out_edges(reaction_id)) | set(g.in_edges(reaction_id)),
                 width=width,
                 alpha=0.5,
                 edge_color="tab:blue",
