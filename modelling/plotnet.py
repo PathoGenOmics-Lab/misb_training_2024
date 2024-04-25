@@ -46,7 +46,7 @@ class NetPlotter:
                 metabolite_nodes.add(metabolite.id)
         return metabolite_nodes - omit_metabolites, reaction_nodes
 
-    def plot(self, reaction_ids: set = set(), omit_metabolites: set = set(), layout_func: Callable[[nx.Graph], Mapping] = None) -> None:
+    def plot(self, reaction_ids: set = set(), omit_metabolites: set = set(), highlight_nodes: set = set(), layout_func: Callable[[nx.Graph], Mapping] = None) -> None:
         # Get types of nodes
         if len(reaction_ids) == 0:
             metabolite_nodes, reaction_nodes = self._select_all_nodes(omit_metabolites)
@@ -62,6 +62,7 @@ class NetPlotter:
         # Plot nodes
         nx.draw_networkx_nodes(g, position, nodelist=list(reaction_nodes), node_color="tab:blue", **PLOT_OPTIONS)
         nx.draw_networkx_nodes(g, position, nodelist=list(metabolite_nodes), node_color="tab:orange", **PLOT_OPTIONS)
+        nx.draw_networkx_nodes(g, position, nodelist=list(highlight_nodes), node_color="tab:red", **PLOT_OPTIONS)
         nx.draw_networkx_labels(g, position, font_size=10, font_color="black")
         # Plot solid edges
         nx.draw_networkx_edges(g, position, width=1.0, alpha=1.0, connectionstyle=EDGE_STYLE)
