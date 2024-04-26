@@ -58,7 +58,7 @@ class NetPlotter:
         if layout_func is not None:
             position = layout_func(g)
         else:
-            position = nx.kamada_kawai_layout(g)
+            position = nx.nx_agraph.graphviz_layout(g)
         # Plot nodes
         if figsize is not None:
             plt.figure(figsize=figsize)
